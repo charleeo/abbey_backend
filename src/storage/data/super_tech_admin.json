@@ -1,0 +1,13 @@
+[
+    {
+        "name":"Charles Otaru",
+        "email":"charleeotaru@gmail.com",
+        "role_name":"tech_admin"
+    },
+
+    {
+        "name":"Admin User",
+        "email":"super_admin@email.com",
+        "role_name":"super_admin"
+    }
+]

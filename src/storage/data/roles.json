@@ -1,0 +1,9 @@
+[
+    {"role_name":"super admin","role":"super_admin"},
+    {"role_name":"tech admin","role":"tech_admin"},
+    {"role_name":"manager - GMD","role":"gmd"},
+    {"role_name":"branch manager","role":"branch_manager"},
+    {"role_name":"regional manager","role":"regional_manager"},
+    {"role_name":"account officer","role":"account_officer"},
+    {"role_name":"loan officer","role":"loan_officer"}
+]

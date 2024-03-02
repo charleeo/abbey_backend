@@ -1,0 +1,28 @@
+# npm run migration:generate -- db/migrations/modifyUserTable
+PORT=4587
+APP_URL= ""
+APP_NAME="Pocket Tracker"
+DB_PORT=
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_USERNAME=
+DB_PASSWORD=
+DB_NAME=okwelomo
+MIGRATION_ENTITY=["dist/**/*.entity.js"]
+MIGRATION_FOLDER = ['dist/db/migrations/*.js']
+
+NODE_ENV=DEVELOPMENT
+
+JWTKEY=""
+TOKEN_EXPIRATION="60h"
+
+MAIL_DRIVER=smtp
+MAIL_HOST=smtp.googlemail.com
+MAIL_PORT=465
+MAIL_USERNAME=prosperlucky.uk@gmail.com
+MAIL_PASSWORD=gdgshgshsgshdguyuyqb
+MAIL_ENCRYPTION=ssl
+MAIL_REPLY_TO="noreply@charleeotaru@gmail.com"
+MAIL_FROM_ADDRESS =prosperlucky.uk@gmail.com
+ADMIN_PASSWORD=dgshgdsh
+TECH_ADMIN_PASSWORD=sdadada

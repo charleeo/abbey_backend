@@ -1,0 +1,41 @@
+[
+    {
+        "action":"do everything",
+        "tag_line":"can_do_everything"
+    },
+    {
+        "action":"create other users",
+        "tag_line":"can_create_users"
+    },
+
+    {
+        "action":"delete other users",
+        "tag_line":"can_delete_users"
+    },
+   
+  
+    {
+        "action":"no action assigned",
+        "tag_line":"no_action_assigned"
+    },
+    {
+        "action":"can approve loan request",
+        "tag_line":"can_approve"
+    },
+    {
+        "action":"can decline loan requests",
+        "tag_line":"can_decline"
+    },
+    {
+        "action":"can request for loans",
+        "tag_line":"can_request"
+    },
+    {
+        "action":"can make payment to clients",
+        "tag_line":"can_process_transfer"
+    },
+    {
+        "action":"can update existing loan request",
+        "tag_line":"can_update"
+    }
+]
