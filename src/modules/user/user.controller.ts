@@ -79,3 +79,5 @@ export class UserController {
     return await this.updateUserService.updateProfile(user, res, params);
   }
 }
+
+

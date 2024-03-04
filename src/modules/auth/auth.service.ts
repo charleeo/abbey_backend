@@ -99,14 +99,14 @@ export class AuthService {
   }
 
   private async generateToken(user,remember?) {
-     const token = remember? await this.jwtService.sign(user,{expiresIn:'2days'})
+    const exp:any = process.env.TOKEN_EXPIRATION
+
+     const token = remember?  this.jwtService.sign(user,{expiresIn:exp})
      :
      await this.jwtService.sign(user)
      
-    const refreshToken = await this.jwtService.sign(user, {
-      expiresIn: process.env.REFRESHTOKEN_EXPIRATION,
-    });
-    return { token, refreshToken };
+    
+    return { token };
   }
 
   public async verifyToken(token) {
