@@ -1,5 +1,4 @@
 import * as bcrypt from 'bcrypt';
-import { instanceToPlain } from 'class-transformer';
 import { Response } from 'express';
 import { logErrors } from 'src/common/helpers/logging';
 
@@ -10,44 +9,28 @@ import {
 } from '@nestjs/common';
 
 import { responseStructure } from '../../../common/helpers/response.structure';
-import {
-  ADMINROLES,
-  ALLDUTIES,
-  NOACTIONASSIGNED,
-  NOTASSIGNED,
-} from '../../../config/constants';
-import actions from '../../../storage/data/actions.json';
-import duties from '../../../storage/data/duties.json';
-import loanTypes from '../../../storage/data/loan.types.json';
-import locations from '../../../storage/data/locations.json';
-import roles from '../../../storage/data/roles.json';
+
 import adminUsers from '../../../storage/data/super_tech_admin.json';
+import repaymentPlans from '../../../storage/data/loan.type.json';
+import mortgages from '../../../storage/data/mortgages.json';
 import { UserRepository } from '../../user/user.repository';
-import { Duties } from '../entities/duties.entity';
 import { Roles } from '../entities/roles.entity';
-import { UserRoles } from '../entities/user.role.entity';
-import { ActionRepository } from '../repository/actions.repository';
-import { DutyRepository } from '../repository/duties.repository';
 import {
   LoanRepaymentDurationCategoryRepository,
 } from '../repository/loan.repayment.duration.category.repository';
-import { LoanTypeRepository } from '../repository/loan.type.repository';
-import { LocationRepository } from '../repository/locations.repository';
 import { RoleRepository } from '../repository/roles.repository';
-import { UserRoleRepository } from '../repository/user_roles.repository';
 import { ApprovalStatus } from 'src/modules/entities/common.type';
+import { MortgageRepository } from '../repository/Mortgage.repository';
+import { LoanRepaymentPlanRepository } from '../repository/LoanRepaymentPlan.repository';
 
 @Injectable()
 export class ConfigService {
   constructor(
     private roleRepo: RoleRepository,
-    private actionRepo: ActionRepository,
-    private dutyRepo: DutyRepository,
-    private readonly userRoleRepo: UserRoleRepository,
-    private readonly locationRepo: LocationRepository,
     private readonly userRepo: UserRepository,
     private readonly loanCategory: LoanRepaymentDurationCategoryRepository,
-    private readonly loanType: LoanTypeRepository,
+    private readonly mortgage: MortgageRepository,
+    private readonly repaymentPlan: LoanRepaymentPlanRepository,
   ) {}
 
   async create(): Promise<any> {
@@ -56,51 +39,16 @@ export class ConfigService {
     const responseData: object = {};
     let status: boolean;
     try {
-      roles.map(async (role) => {
-        responseData['roles'] = 'Roles created';
-        await this.roleRepo.upsert(
-          { role_name: role.role_name, role: role.role },
-          ['role'],
-        );
-      });
-
-      actions.map((action) => {
-        this.actionRepo.upsert(
-          { tag_line: action.tag_line, actions: action.action },
-          ['tag_line'],
-        );
-        responseData['actions'] = 'Actions created';
-      });
-
-      loanTypes.map((type) => {
-        this.loanType.upsert(
-          {
-            type: type.type,
-            description: type.description,
-            status: type.status,
-          },
-          ['type'],
-        );
-        responseData['loan_types'] = 'Loan Types created';
-      });
-
-      locations.map((location) => {
-        this.locationRepo.upsert({ locationName: location.name }, [
-          'locationName',
-        ]);
-        responseData['locations'] = 'Locations created';
-      });
-
-      //constructing the loan category object instead of manually creating it
+      
       const categoryObjects = [];
-
-      for (let i = 1; i < 13; i++) {
+      
+      for (let i = 10; i <= 30; i=i+ 5) {
         categoryObjects.push({
-          categoryName: `${i} Month${i === 1 ? '' : 's'} Repayment`,
-          categoryTag: `${i}_month${i === 1 ? '' : 's'}`,
+          categoryName: `${i} year${i === 1 ? '' : 's'} Repayment`,
+          categoryTag: `${i}year${i === 1 ? '' : 's'}`,
         });
       }
-
+     
       categoryObjects.map((cat) => {
         this.loanCategory.upsert(
           {
@@ -112,12 +60,9 @@ export class ConfigService {
         responseData['Category'] = 'Category created';
       });
 
-      duties.map((duty) => {
-        this.dutyRepo.upsert({ name: duty.name }, ['name']);
-        responseData['duties'] = 'Duties created';
-      });
-
-      await this.createAdminUsersAndAsignRole(responseData);
+      await this.createMortgages(responseData)
+      await this.createAdminUsersAndAsignRole(responseData)
+      await this.createRepaymentPlan(responseData)
       status = true;
       message = 'Config data created';
     } catch (e) {
@@ -128,99 +73,14 @@ export class ConfigService {
     return responseStructure(status, error ?? message, responseData);
   }
 
-  async assignRoleToUser(userRole): Promise<UserRoles> {
-    let error: any = null;
-    let status = false;
-    let message = '';
-    const responseData: any = null;
-
-    try {
-      const userId: number = userRole.userId;
-      const roleId: number = userRole.roleId;
-      const dutyId: number = userRole.dutyId;
-      const actionIds: string[] = userRole.actions;
-      if (!(await this.userRepo.findOneBy({ id: userId }))) {
-        message = 'provided userId is invalid';
-        return responseStructure(status, error ?? message, responseData);
-      }
-      const selectedRole: Roles = await this.roleRepo.findOneBy({ id: roleId });
-
-      const {
-        duty,
-        status: assignmentStatus,
-        actions,
-      } = await this.formatRole(selectedRole, dutyId, actionIds);
-      const actionId: string = actions.join(',');
-      const data = {
-        user: userId,
-        roleId,
-        dutyId: duty,
-        actions: actionId,
-        status: assignmentStatus,
-      };
-      this.userRoleRepo.upsert(data, ['user']);
-    } catch (e) {
-      error = e.message;
-    }
-    if (!error) message = 'roles assigned';
-    status = true;
-    return responseStructure(status, error ?? message, responseData);
-  }
+  
 
   async getRolesByName(role: string): Promise<Roles> {
     return await this.roleRepo.findOneBy({ role });
   }
 
-  /**
-   *
-   * @param name
-   * @returns
-   */
-  async getDutiessByName(name: string): Promise<Duties> {
-    return await this.dutyRepo.findOneBy({ name });
-  }
 
-  /**
-   *
-   * @returns
-   */
-  async getAllActions(): Promise<any[]> {
-    const actions = await this.actionRepo.find();
-    const actionIds: number[] = [];
-    actions.map((action) => {
-      actionIds.push(action.id);
-    });
-    return actionIds;
-  }
 
-  /**
-   *
-   * @param selectedRole
-   * @param dutyId
-   * @param actionIds
-   * @returns
-   */
-  async formatRole(selectedRole: Roles, dutyId: number, actionIds: any) {
-    let assignmentStatus = 1;
-
-    if (ADMINROLES.includes(selectedRole.role)) {
-      dutyId = (await this.dutyRepo.findOneBy({ name: ALLDUTIES })).id;
-      const actions = await this.actionRepo.find({ select: ['id'] });
-      const actionsArray = [];
-      actions.map((a) => actionsArray.push(a.id));
-      actionIds = actionsArray;
-    } else {
-      const noDuty = await this.dutyRepo.findOneBy({ id: dutyId });
-      actionIds = Array.from(new Set(actionIds)); //only non repeating items
-      if (noDuty.name == NOTASSIGNED) {
-        actionIds = [
-          (await this.actionRepo.findOneBy({ tag_line: NOACTIONASSIGNED })).id,
-        ];
-        assignmentStatus = 0;
-      }
-    }
-    return { duty: dutyId, status: assignmentStatus, actions: actionIds };
-  }
 
   /**
    * Create a user that will act an an aadmin during configuration
@@ -239,48 +99,78 @@ export class ConfigService {
         },
         ['email'],
       );
-      this.assignRolesDynamically(users.raw[0]);
     });
+
     responseData['users'] = 'Admins created';
     return responseData;
   }
 
+
   /**
-   * Assign  role to admin users from the configuration settings
-   * @param user
+   * Create a user that will act an an aadmin during configuration
+   * @param responseData
+   * @returns
    */
-  async assignRolesDynamically(user): Promise<void> {
-    const all_duties_object = await this.getDutiessByName(ALLDUTIES);
-    const all_duties = instanceToPlain(all_duties_object);
-    const superAdminRole: Roles = await this.getRolesByName(
-      ADMINROLES['super_admin'],
-    );
-    const actions: number[] = await this.getAllActions();
-    user['userId'] = user.id;
-    user['roleId'] = superAdminRole.id;
-    user['dutyId'] = all_duties.id;
-    user['actions'] = actions;
-    await this.assignRoleToUser(user);
+  async createMortgages(responseData): Promise<any> {
+    mortgages.map(async (mortgage) => {
+      await this.mortgage.upsert(
+        {
+          name: mortgage.name,
+          price: mortgage.price,
+          status: mortgage.status,
+          repayment_status: mortgage.repayment_status,
+          interest: mortgage.interest
+        },
+        ['name'],
+      );
+    });
+
+    responseData['mortgage'] = 'Mortgages created';
+    return responseData;
   }
+
+  
+  /**
+   * Create a user that will act an an aadmin during configuration
+   * @param responseData
+   * @returns
+   */
+  async createRepaymentPlan(responseData): Promise<any> {
+    repaymentPlans.map(async (repayment) => {
+      await this.repaymentPlan.upsert(
+        {
+          name: repayment.name
+        },
+        ['name'],
+      );
+    });
+
+    responseData['plan'] = 'Repayment plan created';
+    return responseData;
+  }
+
+  
 
   async getCategoriesById(id) {
     return await this.loanCategory.findOne({ where: { id } });
   }
 
   async getLoanDependencies(@Res() response: Response) {
-    let error: string;
     const message = '';
     let responseData: object = {};
     let status: boolean;
     let statusCode: HttpStatus;
-    const loanType = await this.loanType.find();
     const loanCategoryDuration = await this.loanCategory.find();
+    const loan_type = await this.repaymentPlan.find();
+    const mortgages = await this.mortgage.find();
     statusCode = HttpStatus.OK;
-    responseData = { loan_type: loanType, loan_duration: loanCategoryDuration };
+    responseData = {  loan_duration: loanCategoryDuration,loan_type,mortgages };
     return response
       .status(statusCode)
       .send(responseStructure(status, message, responseData, statusCode));
   }
+
+
   async setLoanApprovalTypes(@Res() response: Response) {
     
     const message = '';

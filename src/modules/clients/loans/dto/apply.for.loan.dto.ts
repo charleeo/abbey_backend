@@ -4,23 +4,16 @@ import {
   IsNumber,
   IsOptional,
 } from 'class-validator';
-import { InterestPaymentStatus } from 'src/modules/entities/common.type';
+import { MortGage } from 'src/modules/config/entities/mortgage.entity';
 
 export class LoanApplicationDto {
-  @IsNotEmpty()
-  public amount: number;
-
-  @IsOptional()
-  // @IsDate()
-  public grantedDate: Date;
 
   @IsNotEmpty()
   public loan_durtion_category_id: number|string|any;
+  
+  @IsNotEmpty()
+  public mortgage : number
 
   @IsNotEmpty()
-  public loan_type: number | string | any;
-
-  @IsNotEmpty()
-  @IsEnum(InterestPaymentStatus)
-  public interest_payment_status: InterestPaymentStatus;
+  public repayment_plan : number
 }

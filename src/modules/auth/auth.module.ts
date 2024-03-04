@@ -15,7 +15,6 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
-import { RefreshJwtStrategy } from './strategies/refresh.token.strategy';
 
 @Module({
   imports: [
@@ -27,7 +26,7 @@ import { RefreshJwtStrategy } from './strategies/refresh.token.strategy';
     }),
     ConfigModule, //for used in the auth service
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, RefreshJwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy],
   controllers: [AuthController],
 })
 export class AuthModule implements NestModule {

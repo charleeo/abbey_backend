@@ -1,27 +1,11 @@
-import fs from 'fs/promises';
-import path, { sep } from 'path';
+import { RepaymentStatus } from "src/modules/entities/common.type";
 
-export const SUNDAY = 'Sunday';
-export const SATURDAY = 'Saturday';
-export const FRIDAY = 'Friday';
 
-export const DAILY='daily'
-export const WEEKLY='weekly'
 export const MONTHLY = 'montly'
 export const YEARLY = 'yearly'
 
 
-export function day() {
-  return [
-    'Sunday',
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-  ];
-}
+
 
 /**
  * This will return the day name from a given date
@@ -35,37 +19,8 @@ export const dayName = (date) => {
   return dayName;
 };
 
-/**
- * set the date the loan repayment will commence
- * @param grantedDate
- * @param duration
- * @returns
- */
-export const setPaymentCommencementDateDaily = (grantedDate, startDay = 2) => {
-  const day_name = dayName(grantedDate);
-  const date = new Date(grantedDate);
-  if(day_name === SUNDAY || day_name === FRIDAY){
-    startDay =3
-  }
-  if(day_name === SATURDAY){
-    startDay =4
-  }
-  const paymentCommencement = date.setDate(date.getDate() + startDay);
-  return new Date(paymentCommencement);
-};
 
-/**
- * set the date the loan repayment will commence
- * @param commencementDate
- * @returns
- */
-export const setPaymentDueDateDaily = (commencementDate) => {
-  
-  const paymentDueDate = commencementDate.setTime(
-    commencementDate.getTime() + 30 * 24 * 60 * 60 * 1000,
-  );
-  return new Date(paymentDueDate);
-};
+
 
 /**
  * set the date the loan repayment will commence
@@ -77,16 +32,6 @@ export const setPaymentCommencementDateMonthly = (grantedDate, months = 1) => {
   const date = new Date(grantedDate);
   return addMonths(date, months);
 };
-/**
- * set the date the loan repayment will commence
- * @param grantedDate the date loan was given
- * @param duration how many months the loan will span
- * @returns
- */
-export const setPaymentCommencementDateWekly = (grantedDate, weeks = 1) => {
-  const date = new Date(grantedDate);
-  return addWeeks(date, weeks);
-};
 
 /**
  * set the date the loan repayment will commence
@@ -94,9 +39,23 @@ export const setPaymentCommencementDateWekly = (grantedDate, weeks = 1) => {
  * @param duration how many months the loan will span
  * @returns
  */
-export const setPaymentDueDateForNonDaily = (date, duration) => {
+export const setPaymentCommencementDateForyearly = (grantedDate, months = 1) => {
+  const date = new Date(grantedDate);
+  return addMonths(date, months);
+};
+
+
+
+/**
+ * set the date the loan repayment will commence
+ * @param grantedDate the date loan was given
+ * @param duration how many months the loan will span
+ * @returns
+ */
+export const setPaymentDueDateForNonDaily = (date, duration, type = 'montly') => {
   date = new Date(date);
-  return addMonths(date, duration);
+  if(type ==='yearly') return addYears(date,duration)
+  else  return addMonths(date, duration);
 };
 
 function addMonths(date, months) {
@@ -104,11 +63,12 @@ function addMonths(date, months) {
   return date;
 }
 
-
-function addWeeks(date: Date, weeks = 1) {
-  date.setTime(date.getTime() + weeks);
-  return date;
+function addYears(date, year) {
+  date.setFullYear(date.getFullYear() + year);
 }
+
+
+
 
 export function generateReference(code?: string): string {
   const date = new Date();
@@ -117,38 +77,7 @@ export function generateReference(code?: string): string {
   return `${code ?? 'APP_CODE_'}${time}`;
 }
 
-export function Classes(bases) {
-  class Bases {
-    constructor() {
-      bases.forEach((base) => Object.assign(this, new base()));
-    }
-  }
-  bases.forEach((base) => {
-    Object.getOwnPropertyNames(base.prototype)
-      .filter((prop) => prop !== 'contructor')
-      .forEach((prop) => (Bases.prototype[prop] = base.prototype[prop]));
-  });
-  return Bases;
-}
 
-/**
- * this will return a string message corresponding to the code pass to it
-@param {} code the response code to passed
-* @returns {string}
-*/
-export async function setExceptionFilters(exception) {
-  let message = '';
-  let exceptions = await fs.readFile(
-    path.join(`.${sep}src${sep}storage${sep}data${sep}exceptions.json`),
-    'utf-8',
-  );
-  exceptions = JSON.parse(exceptions);
-
-  if (exceptions.hasOwnProperty(exception)) {
-    message = exceptions[exception];
-  }
-  return message;
-}
 
 export function fullDateWithoutTime() {
   // Create a new Date object representing the current date and time
@@ -166,23 +95,9 @@ export function fullDateWithoutTime() {
 }
 
 
-  export function calculatDailyOverdue(repaymentStartData:Date,dailyRepaymentAmount:number,totalPaid:number)
-  {
-      const elapseWeekdays = totalWeekDays(repaymentStartData)
-      
-      const expectedRepayment: number = dailyRepaymentAmount * elapseWeekdays
-      const overDue =  expectedRepayment > totalPaid ?  expectedRepayment - totalPaid : 0
-      
-      return overDue
-  }
+  
 
-  export function calculatWeeklyDue(repaymentStartData:Date,WeeklyRepaymentAmount:number,totalPaid:number)
-  {
-      const elapseWeeks = weeksPast(repaymentStartData)
-      const expectedRepayment: number = WeeklyRepaymentAmount * elapseWeeks
-      const overDue =  expectedRepayment > totalPaid ?  expectedRepayment - totalPaid : 0
-      return overDue
-  }
+  
 
   export function calculatMonthlyDue(repaymentStartData:Date,monthlyRepaymentAmount:number,totalPaid:number)
   {
@@ -205,27 +120,6 @@ export function fullDateWithoutTime() {
         const differenceInDays = Math.ceil(differenceInMilliseconds / (1000 * 60 * 60 * 24));
         return differenceInDays
 
-  }
-
-  function totalWeekDays(pastDate:Date)
-  {
-    const differenceInDays = timeDiff(pastDate)
-    const date: Date = new Date(pastDate)
-    let weekdays = 0;
-    for (let i = 0; i <= differenceInDays; i++) {
-        const tempDate = new Date(pastDate);
-        
-        tempDate.setDate(date.getDate() + i);
-        if (tempDate.getDay() !== 0 && tempDate.getDay() !== 6) {
-            weekdays++;
-        }
-    }
-    return weekdays
-  }
-
-  function weeksPast(pastDate:Date)
-  {
-    return Math.floor(timeDiff(pastDate) / 7)
   }
 
   /**
@@ -260,11 +154,7 @@ export function fullDateWithoutTime() {
   {
     let overDue:any=0
     if(new Date(repaymentStartDate).getTime() < new Date().getTime()){
-        if(loanType == DAILY){
-            overDue =calculatDailyOverdue(repaymentStartDate,repaymentRate,totalPaid)
-        }else if(loanType == WEEKLY){
-            overDue = calculatWeeklyDue(repaymentStartDate,repaymentRate,totalPaid)
-        }else if(loanType == MONTHLY){
+        if(loanType == MONTHLY){
             overDue = calculatMonthlyDue(repaymentStartDate,repaymentRate,totalPaid)
         }
         overDue = Number(overDue).toFixed(2)
@@ -289,19 +179,8 @@ export function fullDateWithoutTime() {
  
 }
 
-export function test()
-{
-  // Generate an array with 12 objects, one for each month, including empty sums
-  // const monthlyData: { month: string; sumAmount: number }[] = [];
-  // for (let i = 1; i <= 12; i++) {
-  //   const monthData = result.find(item => parseInt(item.month) === i);
-  //   monthlyData.push({
-  //     month: getMonthName(i),
-  //     sumAmount: monthData ? parseFloat(monthData.sumAmount) : 0,
-  //   });
-  // }
+// Function to check if an element is present in the enum
+export function isElementPresent(element: string,status:any): boolean {
+  return Object.values(status).includes(element);
 }
-
-
-
 

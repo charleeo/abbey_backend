@@ -1,19 +1,15 @@
 import { HttpStatus, Injectable, Res, Body, Request, Req } from '@nestjs/common';
 import { Response } from 'express';
 import { LoanRepository } from '../../repositories/loan.repository';
-import { LoanSettingService } from '../loan.settings.service';
 import { LoanRepaymentRepository } from '../../repositories/loan.repayment.repository';
 import { LoanRepaymentDto } from '../../dto/loan.repayment.dto';
 import { responseStructure } from 'src/common/helpers/response.structure';
 import { Loan } from '../../entities/loan.entity';
 import { LoanRepayment } from '../../entities/loan.repayments.entity';
-import { LoanType } from 'src/modules/config/entities/loan.type.entity';
-import { generateReference } from 'src/common/helpers/generals';
+import { generateReference, isElementPresent } from 'src/common/helpers/generals';
 import { LoanRepaymentConfirmationDto } from '../../dto/repayment.confirmation.dto';
 import { BaseDataSource } from 'src/common/helpers/base.data.ource';
-import { DaysAndWeekAndMonths, RepaymentStatus } from 'src/modules/entities/common.type';
-import { ApplicationService } from '../application/application.service';
-import { LoanRepaymentDeletionDto } from '../../dto/repayment.deletion.dto';
+import { ApprovalStatus, DaysAndWeekAndMonths, RepaymentStatus } from 'src/modules/entities/common.type';
 
 @Injectable()
 export class RepaymentService extends BaseDataSource {
@@ -21,7 +17,6 @@ export class RepaymentService extends BaseDataSource {
   constructor(
     private readonly loanRepo: LoanRepository,
     private readonly loanRepaymentRepo: LoanRepaymentRepository,
-    private readonly loanSettingService: LoanSettingService,
   ) {
     super(loanRepaymentRepo);
     this.CODE = 'RPM_CODE_';
@@ -43,21 +38,12 @@ export class RepaymentService extends BaseDataSource {
     let responseData = null;
 
     const repayment_amount = dto.repayment_amount;
-    
-    const loan = await this.loan(dto.loan.id);
-
-    const loanType = await this.loanSettingService.getLoanTypeById(
-      dto.loan.loan_type['id'],
-    );
-
+    const loan = await this.loan(dto.reference_number);
     //repayment data
     const repaymentObject = await this.setRepaymentObject(
-      dto.loan,
-      loanType,
+      loan,
       repayment_amount,
     );
-
-    
     const payment = await this.loanRepaymentRepo.save({
       amount: repayment_amount,
       repayments_data: repaymentObject,
@@ -73,6 +59,7 @@ export class RepaymentService extends BaseDataSource {
       message = 'Loan repayment data not saved';
     }
     responseData = payment;
+    await this.autoConfirmRepayment({confirmation_status:RepaymentStatus.confirmed, reference_number:payment.repayment_reference})
 
     return response
       .status(statusCode)
@@ -99,7 +86,7 @@ export class RepaymentService extends BaseDataSource {
    * @param amount
    * @returns
    */
-  private async setRepaymentObject(loan: Loan, loanTYpe: LoanType, amount) {
+  private async setRepaymentObject(loan: Loan, amount) {
 
     const repaymentDataCount = await this.getLoansByRefernce(loan.id);
     let sum_of_payments = 0;
@@ -118,19 +105,8 @@ export class RepaymentService extends BaseDataSource {
       payment_date: new Date(),
     };
 
-    if (loanTYpe.type === DaysAndWeekAndMonths.DAILY) {
-      repaymentObect['type'] = DaysAndWeekAndMonths.DAILY;
-    }
-    if (loanTYpe.type === DaysAndWeekAndMonths.MONTHLY) {
-      repaymentObect['type'] = DaysAndWeekAndMonths.MONTHLY;
-    }
-
-    if (loanTYpe.type === DaysAndWeekAndMonths.WEEKLY) {
-      repaymentObect['type'] = DaysAndWeekAndMonths.WEEKLY;
-    }
-    if (loanTYpe.type === DaysAndWeekAndMonths.YEARLY) {
-      repaymentObect['type'] = DaysAndWeekAndMonths.YEARLY;
-    }
+    repaymentObect['type'] = DaysAndWeekAndMonths.MONTHLY;
+    
     return repaymentObect;
   }
 
@@ -165,18 +141,28 @@ export class RepaymentService extends BaseDataSource {
     const repayment_reference = dto.reference_number;
     const confirmation_status = dto.confirmation_status;
 
+    if(!isElementPresent(confirmation_status, RepaymentStatus))
+    {
+      statusCode = HttpStatus.BAD_REQUEST
+      message = "Invalid confirmation status provided"
+      return response
+      .status(statusCode)
+      .send(responseStructure(status, message, responseData, statusCode));
+    }
+
     const repaymentData = await this.repayment(repayment_reference);
 
     const loan = await this.loan(repaymentData.loan.id);
 
     //check for the status selected if it true, then update the records
+
     if (confirmation_status !== RepaymentStatus.pending) {
-      const updatedRepaymentData = await this.updateEntity(
-        repayment_reference,
-        'repayment_reference',
-        {
+         const updatedRepaymentData = await this.updateEntity(
+         repayment_reference,
+         'repayment_reference',
+         {
           confirmation_status,
-        },
+         },
       );
 
       if (confirmation_status === RepaymentStatus.confirmed && repaymentData.confirmation_status !== RepaymentStatus.confirmed) {
@@ -200,6 +186,48 @@ export class RepaymentService extends BaseDataSource {
     return response
       .status(statusCode)
       .send(responseStructure(status, message, responseData, statusCode));
+  }
+
+  /** Because we don't have to wait for admin to confirm the payment */
+  public async autoConfirmRepayment(
+     dto: any,
+  ) {
+    
+    const responseData = {};
+
+    const repayment_reference = dto.reference_number;
+    const confirmation_status = dto.confirmation_status;
+
+    
+    const repaymentData = await this.repayment(repayment_reference);
+
+    const loan = await this.loan(repaymentData.loan.id);
+
+    //check for the status selected if it true, then update the records
+
+    if (confirmation_status !== RepaymentStatus.pending) {
+          await this.updateEntity(
+         repayment_reference,
+         'repayment_reference',
+         {
+          confirmation_status,
+         },
+      );
+
+      if (confirmation_status === RepaymentStatus.confirmed && repaymentData.confirmation_status !== RepaymentStatus.confirmed) {
+       const {repayment_sum, repayment_percentage} = await this.getData(loan, repaymentData)
+        await this.loanRepo.update(
+          {reference:loan.reference},
+          {
+            repayment_percentage,
+            repayment_sum
+          }
+        );
+      }
+     
+    } 
+
+    return responseData
   }
 
 
@@ -243,7 +271,7 @@ export class RepaymentService extends BaseDataSource {
     return await this.loanRepo.findOneByOrFail({ id });
   }
 
-protected async repayment(repayment_reference): Promise<LoanRepayment> {
+ protected async repayment(repayment_reference): Promise<LoanRepayment> {
     return await this.loanRepaymentRepo.findOneOrFail(
       { where: { repayment_reference }, relations: ['loan'] }
     );

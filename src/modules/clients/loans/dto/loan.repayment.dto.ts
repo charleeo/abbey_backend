@@ -5,12 +5,8 @@ export class LoanRepaymentDto {
   @IsNotEmpty()
   // @IsString()
   @IsNumber()
-  public reference_number: string;
+  public reference_number: number;
 
   @IsNotEmpty()
   public repayment_amount: number;
-
-  @IsNotEmpty()
-  // @IsNumber()
-  public loan: Loan;
 }

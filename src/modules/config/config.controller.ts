@@ -8,8 +8,6 @@ import {
   Res,
 } from '@nestjs/common';
 
-import { UserRoleDto } from './dto/config.dto';
-import { UserRoles } from './entities/user.role.entity';
 import { ConfigService } from './services/config.service';
 
 @Controller('config')
@@ -19,11 +17,6 @@ export class ConfigController {
   @Get()
   async create(): Promise<any> {
     return this.configService.create();
-  }
-
-  @Post('create/user/roles')
-  async assignRoleToUser(@Body() user: UserRoleDto): Promise<UserRoles> {
-    return await this.configService.assignRoleToUser(user);
   }
 
   @Get('get/loan/dependencies')

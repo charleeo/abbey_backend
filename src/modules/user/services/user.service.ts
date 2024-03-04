@@ -9,8 +9,6 @@ import { responseStructure } from 'src/common/helpers/response.structure';
 
 import { Injectable, Query, Req } from '@nestjs/common';
 
-import { UserRoles } from '../../config/entities/user.role.entity';
-import { ActionRepository } from '../../config/repository/actions.repository';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 import { Users } from '../entities/user.entity';
@@ -21,7 +19,6 @@ dotenv.config();
 export class UserService extends BaseDataSource {
   constructor(
     private usersRepository: UserRepository,
-    private actionRepo: ActionRepository,
   ) {
     super(usersRepository);
   }
@@ -48,24 +45,13 @@ export class UserService extends BaseDataSource {
 
   async findOneWithRoles(email: string): Promise<any> {
     const user = await this.usersRepository.findOne({
-      relations: {
-        role: true,
-      },
       where: {
         email: email,
       },
     });
-
-    const plainUser: any = instanceToPlain(user);
-    let roleAction = [];
-    if (user) {
-      const role: UserRoles = plainUser.role;
-      if (role) {
-        roleAction = role.actions.split(',');
-      }
-    }
-
-    return this.getActions(roleAction);
+    return user
+  
+    
   }
 
   async remove(id: number): Promise<void> {
@@ -111,15 +97,5 @@ export class UserService extends BaseDataSource {
     return responseStructure(status, error ?? message, data);
   }
 
-  async getActions(actionIds) {
-    return await this.actionRepo
-      .createQueryBuilder('action')
-      .whereInIds(actionIds)
-      .getMany();
-    // return await this.actionRepo.createQueryBuilder('action')
-    // .where('action.id IN (:...ids)', {
-    //   ids: actionIds,
-    // })
-    // .getMany();
-  }
+ 
 }

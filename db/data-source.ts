@@ -7,7 +7,6 @@ import {
 
 dotenv.config();
 const port = process.env.DB_PORT;
-const appEnv = process.env.APP_ENV
 export const datasourceOption: DataSourceOptions = {
   type: process.env.DB_TYPE as any,
   host: process.env.DB_HOST,
@@ -20,14 +19,7 @@ export const datasourceOption: DataSourceOptions = {
   logging: false,
   migrationsRun: false,
   subscribers: [],
-  // ssl: {
-  //    rejectUnauthorized: false,
-  // },
 
-  // // ssl: {
-  //   rejectUnauthorized: true, // You can set this to false if you want to bypass certificate validation
-  //   ca: fs.readFileSync('/path/to/rds-combined-ca-bundle.pem').toString(), // Path to the downloaded RDS CA certificate
-  // },
 };
 
 const datasource = new DataSource(datasourceOption);

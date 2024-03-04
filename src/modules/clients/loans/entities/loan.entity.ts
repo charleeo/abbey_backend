@@ -1,4 +1,3 @@
-import { LoanType } from 'src/modules/config/entities/loan.type.entity';
 import { LoanRepaymentDurationCategory } from 'src/modules/config/entities/loans.category.entity';
 import {
   ApprovalStatus,
@@ -18,6 +17,8 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import { LoanRepayment } from './loan.repayments.entity';
+import { MortGage } from 'src/modules/config/entities/mortgage.entity';
+import { LoanRepaymentPlan } from 'src/modules/config/entities/loan.repayment.type.entity';
 
 @Entity({ name: 'loans' })
 export class Loan {
@@ -32,29 +33,33 @@ export class Loan {
   @JoinColumn({ name: 'loan_duration_category' }) 
   loan_duration_category: LoanRepaymentDurationCategory;
 
-  @ManyToOne(() => LoanType)
-  @JoinColumn({ name: 'loan_type' }) 
-  loan_type:LoanType
+  @ManyToOne(() => MortGage)
+  @JoinColumn({ name: 'mortgage' }) 
+  mortgage: MortGage;
 
-   @OneToMany(() => LoanRepayment, repayment => repayment.loan,{eager:true})
+  @ManyToOne(() => LoanRepaymentPlan)
+  @JoinColumn({ name: 'loanRepaymentPlan' }) 
+  loanRepaymentPlan: LoanRepaymentPlan;
+
+  @OneToMany(() => LoanRepayment, repayment => repayment.loan,{eager:true})
   repayments: LoanRepayment[] ;
 
   @Column({ type: 'int' })
   customer_id: number;
 
-  @Column({ type: 'decimal', default: 0.0, precision: 10, scale: 2 })
+  @Column({ type: 'decimal', default: 0.0, precision: 15, scale: 2 })
   amount: number;
 
-  @Column({ type: 'decimal', default: 0.0, precision: 10, scale: 2 })
+  @Column({ type: 'decimal', default: 0.0, precision: 15, scale: 2 })
   interest: number;
 
-  @Column({ type: 'decimal', default: 0.0, precision: 10, scale: 2 })
+  @Column({ type: 'decimal', default: 0.0, precision: 15, scale: 2 })
   repayment_sum: number;
 
   @Column({
     type: 'decimal',
     default: 0.0,
-    precision: 10,
+    precision: 15,
     scale: 2,
     comment: 'the loaned amount plus the loan interest',
   })
@@ -86,7 +91,7 @@ export class Loan {
 
   @Column({
     type: 'enum',
-    default: ApprovalStatus.pending,
+    default: ApprovalStatus.verified,
     enum: ApprovalStatus,
   })
   verification_status: ApprovalStatus;

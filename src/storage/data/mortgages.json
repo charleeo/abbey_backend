@@ -1,0 +1,31 @@
+[
+    {
+        "name" : "Plaza",
+        "price": 50000000,
+        "interest" : "18",
+        "status" : "available",
+        "repayment_status": "not_paid"
+    },
+
+    {
+        "name" : "Hotel",
+        "price": 35000000,
+        "interest" : "20",
+        "status" : "available",
+        "repayment_status": "not_paid"
+    },
+    {
+        "name" : "Mall",
+        "price": 129000000,
+        "interest" : "18",
+        "status" : "available",
+        "repayment_status": "not_paid"
+    },
+    {
+        "name" : "Bungalow",
+        "price": 50000000,
+        "interest" : "18",
+        "status" : "available",
+        "repayment_status": "not_paid"
+    }
+]

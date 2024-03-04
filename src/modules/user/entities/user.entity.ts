@@ -1,6 +1,4 @@
 import { Exclude } from 'class-transformer';
-import { KYC } from 'src/modules/clients/kyc/entities/kyc.entity';
-import { UserRoles } from 'src/modules/config/entities/user.role.entity';
 import {
   Column,
   CreateDateColumn,
@@ -26,9 +24,6 @@ export class Users {
   @Column({ nullable: true, type: 'varchar' })
   firstname: string;
 
-  @Column({ nullable: true, type: 'varchar', unique: true })
-  username: string;
-
   @Column({ nullable: true, type: 'varchar' })
   lastname: string;
 
@@ -51,12 +46,6 @@ export class Users {
 
   @Column({ type: 'bool', default: false })
   is_admin: boolean;
-
-  @OneToOne(() => UserRoles, (role) => role.user)
-  role: UserRoles;
-
-  @OneToOne(() => KYC, (kyc) => kyc.user)
-  kyc: KYC;
 
   @CreateDateColumn()
   created_at: Date;

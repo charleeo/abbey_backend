@@ -37,15 +37,7 @@ export class AuthService {
     }
 
     userData = instanceToPlain(userData);
-    const actionarrays: string[] = [];
-    if (userData) {
-      userData.map((userActions) => {
-        actionarrays.push(userActions.tag_line);
-      });
-    }
-
-    user['roleDetails'] = userData;
-    user['actions'] = actionarrays;
+    
     const { password, ...result } = user;
     return result;
   }
@@ -57,7 +49,7 @@ export class AuthService {
     let responseData = null;
     const remember = req.remember
     const user = await this.userService.findOneByEmail(req.email);
-    const { token, refreshToken } = await this.generateToken(
+    const { token } = await this.generateToken(
       instanceToPlain(user), remember
     );
     if (token) {
@@ -72,31 +64,11 @@ export class AuthService {
 
     responseData = user;
     responseData.token = token;
-    responseData.refreshToken = refreshToken;
     return res
       .status(HttpStatus.OK)
       .send(responseStructure(status, message, responseData, HttpStatus.OK));
   }
 
-  public async refreshToken(user: Users, res) {
-    let status: boolean;
-    const message = '';
-
-    const newUser = await this.userService.findOneByEmail(user.email);
-
-    const responseData = await this.jwtService.sign(instanceToPlain(newUser));
-
-    return res
-      .status(HttpStatus.OK)
-      .send(
-        responseStructure(
-          status,
-          message,
-          { token: responseData },
-          HttpStatus.OK,
-        ),
-      );
-  }
 
   public async createUser(user, res) {
     let status = false;
