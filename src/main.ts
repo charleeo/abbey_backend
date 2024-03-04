@@ -7,8 +7,7 @@ import cookieParser from 'cookie-parser';
 import { ExceptionHandler } from './interceptors/filters/ExceptionHandler';
 import { LoggerInterceptor } from './interceptors/logger/logger.interceptor';
 async function bootstrap() {
-  const port = process.env.PORT || 4550;
-  console.log(port)
+  const port = process.env.PORT || 3000;
   const app = await NestFactory.create(AppModule);
   const httpAdapter = app.get(HttpAdapterHost);
   app.setGlobalPrefix('api/v1');
